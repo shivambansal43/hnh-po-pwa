@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Purchase Order – Hnh Store</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .container { max-width: 900px; margin: auto; }
+    h1 { text-align: center; color: #F58534; margin-bottom: 5px; }
+    h2, p { text-align: center; margin: 0; }
+    .section { margin-top: 20px; }
+    label { width: 180px; display: inline-block; }
+    input { padding: 6px; font-size: 14px; }
+    button { padding: 8px 12px; margin: 8px 0; background: #F58534; color: white; border: none; cursor: pointer; }
+    .product-header, .product-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .product-header { font-weight: bold; color: #F58534; }
+    .description { flex: 2; }
+    .small { flex: 0.7; }
+    .sign { margin-top: 40px; text-align: right; }
+    .actions { text-align: center; margin-top: 30px; }
+    @media print { button, .actions { display: none; } input { border: none; } }
+  </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F58534">
+</head>
+<body>
+
+<div class="container">
+  <h1>Purchase Order</h1>
+  <h2>Hnh Store</h2>
+  <p>SCO 201, Sector 14, Panchkula – +91‑9888288777</p>
+
+  <div class="section">
+    <label>Vendor Name:</label><input type="text" id="vendor"><br>
+    <label>Date:</label><input type="date" id="date"><br>
+    <label>Additional Benefits:</label><input type="text" id="benefits"><br>
+    <label>CD%:</label><input type="text" id="cd"><br>
+    <label>Amount ₹:</label><input type="number" id="amount"><br>
+    <label>Duration:</label>
+    <input id="years" type="number" placeholder="Yrs" style="width:60px;"> yrs 
+    <input id="months" type="number" placeholder="Mos" style="width:60px;"> mos 
+    <input id="days" type="number" placeholder="Days" style="width:60px;"> days
+  </div>
+
+  <div class="section">
+    <div class="product-header">
+      <div class="description">Description</div>
+      <div class="small">Qty</div>
+      <div class="small">Margin (%)</div>
+      <div class="small">Scheme</div>
+      <div class="small">Net Price ₹</div>
+    </div>
+    <div id="products">
+      <div class="product-row">
+        <input class="description" type="text" maxlength="108">
+        <input class="small" type="number">
+        <input class="small" type="number" step="0.01">
+        <input class="small" type="text" maxlength="20">
+        <input class="small" type="number" step="0.01">
+      </div>
+    </div>
+    <button onclick="addProduct()">➕ Add Product Row</button>
+  </div>
+
+  <div class="sign"><strong>Authorized Signatory</strong></div>
+
+  <div class="actions">
+    <button onclick="sendWhatsApp()">📤 WhatsApp</button>
+    <button onclick="exportPDF()">📄 PDF</button>
+    <button onclick="window.print()">🖨️ Print</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+  document.getElementById("date").valueAsDate = new Date();
+
+  function addProduct() {
+    const row = document.querySelector('.product-row').cloneNode(true);
+    row.querySelectorAll('input').forEach(i => i.value = '');
+    document.getElementById('products').appendChild(row);
+  }
+
+  function hyphenizeAll() {
+    ['vendor','benefits','cd','amount','years','months','days']
+      .forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value.trim()) el.value = '-';
+      });
+    document.querySelectorAll('.product-row').forEach(row => {
+      row.querySelectorAll('input').forEach(i => {
+        if (!i.value.trim()) i.value = '-';
+      });
+    });
+  }
+
+  function sendWhatsApp() {
+    hyphenizeAll();
+    const v = vendor.value, d = date.value,
+          b = benefits.value, c = cd.value,
+          amt = amount.value,
+          yrs = years.value, mos = months.value, days = days.value;
+    let prod = '';
+    document.querySelectorAll('.product-row').forEach((row,i) => {
+      const [desc,qty,margin,scheme,net] = row.querySelectorAll('input');
+      prod += `\n${i+1}. ${desc.value}, Qty:${qty.value}, Margin:${margin.value}%, Scheme:${scheme.value}, Net:₹${net.value}`;
+    });
+    const dur = `${yrs} yrs ${mos} mos ${days} days`;
+    const msg = encodeURIComponent(
+      `*HNH Purchase Order*\nVendor:${v}\nDate:${d}\nBenefits:${b}\nCD%:${c}\nAmount:₹${amt}\nDuration:${dur}\nProducts:${prod}`
+    );
+    window.open(`https://wa.me/919888288777?text=${msg}`, '_blank');
+  }
+
+  function exportPDF() {
+    hyphenizeAll();
+    html2pdf().set({
+      margin: [10,10,10,10],
+      filename: 'HNH-PO.pdf',
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(document.querySelector('.container')).save();
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('SW Registered'));
+    });
+  }
+</script>
+</body>
+</html>
